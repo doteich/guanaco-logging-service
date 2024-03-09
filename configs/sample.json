@@ -1,0 +1,15 @@
+{
+    "confName": "sample",
+    "db": "sample",
+    "ep": "opc.tcp://192.168.178.108:49320",
+    "policy": "Basic256Sha256",
+    "mode": "SignAndEncrypt",
+    "auth": "Anonymous",
+    "password": "",
+    "user": "",
+    "monitoredItems": [
+        "ns=2;s=Machines.Packaging.Tag 1",
+        "ns=2;s=Machines.Packaging.Tag 2"
+    ],
+    "interval": 10
+}
