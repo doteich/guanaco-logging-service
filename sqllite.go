@@ -16,7 +16,7 @@ type payload struct {
 	nodeName string
 	nodeId   string
 	dataType string
-	value    string
+	value    interface{}
 }
 
 var DB *sql.DB
@@ -56,10 +56,41 @@ func InitDB(ctx context.Context, n string, d string) error {
 }
 
 func (p *payload) InsertData(ctx context.Context) {
-	_, err := DB.ExecContext(ctx, `INSERT INTO guanaco (ts, nodeName, nodeId, dataType, value)`, p.ts, p.nodeName, p.nodeId, p.dataType, p.value)
+	_, err := DB.ExecContext(ctx, `INSERT INTO guanaco (ts, nodeName, nodeId, dataType, value) VALUES (?,?,?,?,?)`, p.ts.Format(time.RFC3339), p.nodeName, p.nodeId, p.dataType, p.value)
 
 	if err != nil {
 		Logger.Error(fmt.Sprintf("error while inserting payload to database %s", err.Error()))
 	}
 
+}
+
+func queryAll(ctx context.Context) {
+
+	for {
+		r, err := DB.Query(`SELECT * FROM guanaco`)
+		if err != nil {
+
+			Logger.Error(fmt.Sprintf("error executing query: %s", err.Error()))
+			continue
+		}
+
+		var results []payload
+
+		for r.Next() {
+
+			var entry payload
+			r.Scan(
+				&entry.id, &entry.ts, &entry.nodeName, &entry.nodeId, &entry.dataType, &entry.value,
+			)
+			results = append(results, entry)
+		}
+
+		for _, res := range results {
+			fmt.Printf("ts: %s, node: %s, id: %s,  dt: %s, val: %s \n", res.ts.String(), res.nodeName, res.nodeId, res.dataType, res.value)
+		}
+
+		r.Close()
+
+		time.Sleep(20 * time.Second)
+	}
 }

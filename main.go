@@ -30,16 +30,19 @@ type conf struct {
 }
 
 var (
-	Subs   map[int]*monitor.Subscription
-	File   string = *flag.String("file", "sample.json", "file name of config file")
-	Logger *slog.Logger
+	Client        *opcua.Client
+	Subs          map[uint32]*monitor.Subscription
+	File          string = *flag.String("file", "sample.json", "file name of config file")
+	Logger        *slog.Logger
+	LastKeepAlive time.Time
+	RetryActive   bool
 )
 
 func main() {
 
 	flag.Parse()
 
-	Logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelError}))
+	Logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
 	ctx := context.Background()
 
@@ -59,33 +62,33 @@ func main() {
 
 	if err := InitDB(ctx, conf.ConfName, conf.DB); err != nil {
 		Logger.Error(fmt.Sprintf("error creating db: %s", err.Error()))
+		return
 	}
 
-	c, err := conf.CreateClient(ctx)
+	Client, err = conf.CreateClient(ctx)
 
 	if err != nil {
 		Logger.Error(fmt.Sprintf("error while creating client connection: %s", err.Error()))
 		return
 	}
 
-	if err := c.Connect(ctx); err != nil {
+	if err := Client.Connect(ctx); err != nil {
 		Logger.Error(fmt.Sprintf("error while creating client connection: %s", err.Error()))
 		return
 	}
 
-	m, err := monitor.NewNodeMonitor(c)
+	Subs = make(map[uint32]*monitor.Subscription)
 
-	if err != nil {
-		Logger.Error(fmt.Sprintf("error while creating node monitor: %s", err.Error()))
-		return
-	}
+	InitSubs(ctx, conf)
 
-	Subs = make(map[int]*monitor.Subscription)
+	//go queryAll(ctx)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 
-	go CreateSub(ctx, &wg, m, conf.MonitoredItems, conf.Interval, conf.DB)
+	tick := time.NewTicker(30 * time.Second)
+
+	go ConnectionCheck(tick, ctx, &wg, conf)
 
 	wg.Wait()
 }
@@ -134,23 +137,66 @@ func (p *conf) CreateClient(ctx context.Context) (*opcua.Client, error) {
 	return c, err
 }
 
-func CreateSub(ctx context.Context, wg *sync.WaitGroup, m *monitor.NodeMonitor, nodes []string, iv int, db string) {
+func InitSubs(ctx context.Context, conf conf) {
+	m, err := monitor.NewNodeMonitor(Client)
+
+	if err != nil {
+		Logger.Error(fmt.Sprintf("error while creating node monitor: %s", err.Error()))
+		return
+	}
+
+	go CreateSub(ctx, m, conf.MonitoredItems, conf.Interval, conf.DB)
+	go KeepAlive(ctx, m)
+}
+
+func CreateSub(ctx context.Context, m *monitor.NodeMonitor, nodes []string, iv int, db string) {
 	sub, err := m.Subscribe(ctx, &opcua.SubscriptionParameters{Interval: time.Duration(iv) * time.Second}, func(s *monitor.Subscription, dcm *monitor.DataChangeMessage) {
 		if dcm.Error != nil {
 			Logger.Error(fmt.Sprintf("error with received sub message: %s - nodeid %s", dcm.Error.Error(), dcm.NodeID))
+		} else if dcm.Status != ua.StatusOK {
+			Logger.Error(fmt.Sprintf("received bad status for sub message: %s - nodeid %s", dcm.Status, dcm.NodeID))
 		} else {
 
-			if dcm.Status != ua.StatusOK {
-				Logger.Error(fmt.Sprintf("received bad status for sub message: %s - nodeid %s", dcm.Status, dcm.NodeID))
-			} else {
+			var dt string
+
+			switch dcm.Value.Value().(type) {
+			case int:
+				dt = "Int"
+			case uint8:
+				dt = "u8"
+			case uint16:
+				dt = "u16"
+			case uint32:
+				dt = "u32"
+			case int8:
+				dt = "i8"
+			case int16:
+				dt = "i16"
+			case int32:
+				dt = "i32"
+			case int64:
+				dt = "i64"
+			case float32:
+				dt = "f32"
+			case float64:
+				dt = "f64"
+			case bool:
+				dt = "Bool"
+			default:
+				dt = "Str"
 
 			}
+			p := payload{ts: dcm.SourceTimestamp, nodeId: dcm.NodeID.String(), dataType: dt, value: dcm.Value.Value(), nodeName: dcm.NodeID.StringID()}
+			p.InsertData(ctx)
+
 		}
+
 	})
 
 	if err != nil {
 		Logger.Error(fmt.Sprintf("error while creating subscription: %s", err.Error()))
-		defer TerminateSub(ctx, wg, sub)
+
+		return
 	}
 
 	for _, n := range nodes {
@@ -163,13 +209,66 @@ func CreateSub(ctx context.Context, wg *sync.WaitGroup, m *monitor.NodeMonitor, 
 
 	}
 
-	Subs[len(Subs)+1] = sub
+	id := sub.SubscriptionID()
+	Subs[id] = sub
 
-	defer TerminateSub(ctx, wg, sub)
+	defer TerminateSub(ctx, sub, id)
 	<-ctx.Done()
 }
 
-func TerminateSub(ctx context.Context, wg *sync.WaitGroup, s *monitor.Subscription) {
-	wg.Done()
+func TerminateSub(ctx context.Context, s *monitor.Subscription, id uint32) {
+	delete(Subs, id)
 	s.Unsubscribe(ctx)
+
+}
+
+func KeepAlive(ctx context.Context, m *monitor.NodeMonitor) {
+
+	LastKeepAlive = time.Now()
+
+	sub, err := m.Subscribe(ctx, &opcua.SubscriptionParameters{Interval: 10 * time.Second}, func(s *monitor.Subscription, dcm *monitor.DataChangeMessage) {
+		if dcm.Error != nil {
+			Logger.Error(fmt.Sprintf("error with received keepalive message: %s - nodeid %s", dcm.Error.Error(), dcm.NodeID))
+		} else if dcm.Status != ua.StatusOK {
+			Logger.Error(fmt.Sprintf("received bad status for keepalive message: %s - nodeid %s", dcm.Value.StatusCode(), dcm.NodeID))
+		} else {
+			LastKeepAlive = time.Now()
+		}
+	})
+
+	if err != nil {
+		Logger.Error(fmt.Sprintf("error while creating subscription: %s", err.Error()))
+		return
+	}
+
+	sub.AddMonitorItems(ctx, monitor.Request{NodeID: ua.MustParseNodeID("i=2258"), MonitoringMode: ua.MonitoringModeReporting, MonitoringParameters: &ua.MonitoringParameters{DiscardOldest: true, QueueSize: 1}})
+
+	id := sub.SubscriptionID()
+	Subs[id] = sub
+
+	defer TerminateSub(ctx, sub, id)
+	<-ctx.Done()
+
+}
+
+func ConnectionCheck(t *time.Ticker, ctx context.Context, wg *sync.WaitGroup, conf conf) {
+	for {
+		select {
+		case <-t.C:
+			diff := time.Since(LastKeepAlive).Seconds()
+
+			if diff > 60 {
+				Logger.Warn("last keepalive message received over 60s ago - reinit subs")
+				for id, sub := range Subs {
+					TerminateSub(ctx, sub, id)
+				}
+				InitSubs(ctx, conf)
+
+			}
+
+		case <-ctx.Done():
+			wg.Done()
+			return
+		}
+	}
 }
