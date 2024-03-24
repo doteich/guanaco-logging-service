@@ -32,7 +32,7 @@ type conf struct {
 var (
 	Client        *opcua.Client
 	Subs          map[uint32]*monitor.Subscription
-	File          string = *flag.String("file", "./configs/sample.json", "file name of config file")
+	File          = flag.String("file", "./configs/sample.json", "file name of config file")
 	Logger        *slog.Logger
 	LastKeepAlive time.Time
 	RetryActive   bool
@@ -48,7 +48,7 @@ func main() {
 
 	var conf conf
 
-	bArr, err := os.ReadFile(File)
+	bArr, err := os.ReadFile(*File)
 
 	if err != nil {
 		Logger.Error(fmt.Sprintf("error while reading config file: %s", err.Error()))
