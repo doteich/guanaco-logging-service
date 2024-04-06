@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gopcua/opcua v0.5.3 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
+	github.com/kardianos/service v1.2.2 // indirect
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
