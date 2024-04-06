@@ -32,6 +32,7 @@ type conf struct {
 var (
 	Client        *opcua.Client
 	Subs          map[uint32]*monitor.Subscription
+	Path          = flag.String("path", "./", "full path to service")
 	File          = flag.String("file", "./configs/sample.json", "file name of config file")
 	Logger        *slog.Logger
 	LastKeepAlive time.Time
@@ -42,8 +43,28 @@ func main() {
 
 	flag.Parse()
 
-	Logger = slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	l := fmt.Sprintf("%s/logs/logfile.log", *Path)
 
+	_, err := os.Stat(l)
+
+	if err != nil {
+		os.Create(l)
+	}
+
+	file, err := os.OpenFile(l, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0600)
+
+	if err != nil {
+		panic(err)
+	}
+
+	defer file.Close()
+
+	Logger = slog.New(slog.NewTextHandler(file, &slog.HandlerOptions{Level: slog.LevelInfo}))
+
+	CreateService()
+}
+
+func (p *programm) run() {
 	ctx := context.Background()
 
 	var conf conf

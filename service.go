@@ -29,9 +29,17 @@ func CreateService() {
 
 	prg.service = s
 
+	if err := s.Install(); err != nil {
+		Logger.Error(fmt.Sprintf("error installing service to svc registry: %s", err.Error()))
+	}
+
+	s.Run()
+
 }
 
 func (p *programm) Start(service.Service) error {
+
+	go p.run()
 
 	return nil
 }
