@@ -30,7 +30,7 @@ func InitDB(ctx context.Context, n string, d string) error {
 		os.Mkdir("./sqlite", 0755)
 	}
 
-	DB, err = sql.Open("sqlite", "./sqlite/"+n+".db")
+	DB, err = sql.Open("sqlite", "./sqlite/data.db")
 
 	if err != nil {
 		return err
@@ -85,9 +85,12 @@ func queryAll(ctx context.Context) {
 			results = append(results, entry)
 		}
 
-		for _, res := range results {
-			fmt.Printf("ts: %s, node: %s, id: %s,  dt: %s, val: %s \n", res.ts.String(), res.nodeName, res.nodeId, res.dataType, res.value)
-		}
+		// for _, res := range results {
+		// 	fmt.Printf("ts: %s, node: %s, id: %s,  dt: %s, val: %s \n", res.ts.String(), res.nodeName, res.nodeId, res.dataType, res.value)
+		// }
+
+		res := results[len(results)-1]
+		fmt.Printf("ts: %s, node: %s, id: %s,  dt: %s, val: %s \n", res.ts.String(), res.nodeName, res.nodeId, res.dataType, res.value)
 
 		r.Close()
 
