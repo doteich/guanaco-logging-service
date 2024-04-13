@@ -11,12 +11,15 @@ type programm struct {
 	service service.Service
 }
 
-func CreateService() {
+func CreateService(id int, sName string, path string) {
+
+	sFN := fmt.Sprintf("%d_%s", id, sName)
 
 	svcConfig := &service.Config{
-		Name:        "guanaco-test",
-		DisplayName: "guanaco-test-svc",
-		Description: "Guanaco Logging Service",
+		Name:        "guanaco-svc-" + sFN,
+		DisplayName: "Guanaco Logging Service " + sFN,
+		Description: "Guanaco Logging Service for " + sFN,
+		Arguments:   []string{"path", path},
 	}
 
 	prg := programm{exit: make(chan struct{})}
@@ -33,6 +36,7 @@ func CreateService() {
 		Logger.Error(fmt.Sprintf("error installing service to svc registry: %s", err.Error()))
 	}
 
+	s.Install()
 	s.Run()
 
 }

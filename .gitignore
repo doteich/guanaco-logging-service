@@ -1,2 +1,5 @@
 *certs*
 *.db
+config.json
+*.exe
+*.log
