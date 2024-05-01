@@ -21,16 +21,16 @@ type payload struct {
 
 var DB *sql.DB
 
-func InitDB(ctx context.Context, n string, d string) error {
+func InitDB(ctx context.Context, path string) error {
 
 	var err error
-	_, err = os.Stat("./sqlite")
+	_, err = os.Stat(path + "/sqlite")
 
 	if err != nil {
-		os.Mkdir("./sqlite", 0755)
+		os.Mkdir(path+"/sqlite", 0755)
 	}
 
-	DB, err = sql.Open("sqlite", "./sqlite/data.db")
+	DB, err = sql.Open("sqlite", path+"/sqlite/data.db")
 
 	if err != nil {
 		return err

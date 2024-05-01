@@ -81,7 +81,7 @@ func main() {
 func (p *programm) run() {
 	ctx := context.Background()
 
-	if err := InitDB(ctx, Config.ConfName, Config.DB); err != nil {
+	if err := InitDB(ctx, *Path); err != nil {
 		Logger.Error(fmt.Sprintf("error creating db: %s", err.Error()))
 		return
 	}
