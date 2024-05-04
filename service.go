@@ -19,7 +19,7 @@ func CreateService(id int, sName string, path string) {
 		Name:        "guanaco-svc-" + sFN,
 		DisplayName: "Guanaco Logging Service " + sFN,
 		Description: "Guanaco Logging Service for " + sFN,
-		Arguments:   []string{"path", path},
+		Arguments:   []string{"-path", path},
 	}
 
 	prg := programm{exit: make(chan struct{})}
@@ -36,8 +36,13 @@ func CreateService(id int, sName string, path string) {
 		Logger.Error(fmt.Sprintf("error installing service to svc registry: %s", err.Error()))
 	}
 
-	s.Install()
-	s.Run()
+	if err := s.Install(); err != nil {
+		Logger.Error(fmt.Sprintf("service is already installed: %s", err.Error()))
+	}
+	if err := s.Run(); err != nil {
+		Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
+		return
+	}
 
 }
 

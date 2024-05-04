@@ -102,7 +102,7 @@ func (p *programm) run() {
 
 	Subs = make(map[uint32]*monitor.Subscription)
 
-	// go queryAll(ctx)
+	go queryAll(ctx)
 
 	wg := sync.WaitGroup{}
 	wg.Add(1)
