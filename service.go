@@ -36,14 +36,15 @@ func CreateService(id int, sName string, path string, cmd string) {
 		if err := s.Install(); err != nil {
 			Logger.Error(fmt.Sprintf("service is already installed: %s", err.Error()))
 		}
+		if err := s.Start(); err != nil {
+			Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
+		}
+		return
 	}
 
-	// if err := s.Run(); err != nil {
-	// 	Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
-	// 	return
-	// }
-	if err := s.Start(); err != nil {
-		Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
+	if err := s.Run(); err != nil {
+		Logger.Error(fmt.Sprintf("error while running the service: %s", err.Error()))
+		return
 	}
 
 }
