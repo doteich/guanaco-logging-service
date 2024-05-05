@@ -34,7 +34,7 @@ var (
 	Client        *opcua.Client
 	Subs          map[uint32]*monitor.Subscription
 	Path          = flag.String("path", "./", "full path to service")
-	File          = flag.String("file", "./configs/sample.json", "file name of config file")
+	Command       = flag.String("command", "run", "service action, can be: install, start, run, stop")
 	Logger        *slog.Logger
 	LastKeepAlive time.Time
 	RetryActive   bool
@@ -75,7 +75,7 @@ func main() {
 		return
 	}
 
-	CreateService(Config.Id, Config.ConfName, *Path)
+	CreateService(Config.Id, Config.ConfName, *Path, *Command)
 }
 
 func (p *programm) run() {

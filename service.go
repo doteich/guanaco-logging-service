@@ -11,7 +11,7 @@ type programm struct {
 	service service.Service
 }
 
-func CreateService(id int, sName string, path string) {
+func CreateService(id int, sName string, path string, cmd string) {
 
 	sFN := fmt.Sprintf("%d_%s", id, sName)
 
@@ -32,16 +32,18 @@ func CreateService(id int, sName string, path string) {
 
 	prg.service = s
 
-	if err := s.Install(); err != nil {
-		Logger.Error(fmt.Sprintf("error installing service to svc registry: %s", err.Error()))
+	if cmd == "install" {
+		if err := s.Install(); err != nil {
+			Logger.Error(fmt.Sprintf("service is already installed: %s", err.Error()))
+		}
 	}
 
-	if err := s.Install(); err != nil {
-		Logger.Error(fmt.Sprintf("service is already installed: %s", err.Error()))
-	}
-	if err := s.Run(); err != nil {
+	// if err := s.Run(); err != nil {
+	// 	Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
+	// 	return
+	// }
+	if err := s.Start(); err != nil {
 		Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
-		return
 	}
 
 }
