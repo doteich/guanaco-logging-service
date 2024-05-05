@@ -143,8 +143,8 @@ func (p *conf) CreateClient(ctx context.Context) (*opcua.Client, error) {
 	}
 
 	if p.Policy != "None" {
-		opts = append(opts, opcua.CertificateFile("./certs/cert.pem"))
-		opts = append(opts, opcua.PrivateKeyFile("./certs/key.pem"))
+		opts = append(opts, opcua.CertificateFile(*Path+"/certs/cert.pem"))
+		opts = append(opts, opcua.PrivateKeyFile(*Path+"/certs/key.pem"))
 	}
 
 	c, err := opcua.NewClient(p.EP, opts...)
