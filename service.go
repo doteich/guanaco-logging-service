@@ -13,10 +13,10 @@ type programm struct {
 
 func CreateService(id int, sName string, path string) {
 
-	sFN := fmt.Sprintf("%d_%s", id, sName)
+	sFN := fmt.Sprintf("%d_guanaco_%s", id, sName)
 
 	svcConfig := &service.Config{
-		Name:        "guanaco-svc-" + sFN,
+		Name:        sFN + "_svc",
 		DisplayName: "Guanaco Logging Service " + sFN,
 		Description: "Guanaco Logging Service for " + sFN,
 		Arguments:   []string{"-path", path},
