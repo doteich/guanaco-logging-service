@@ -32,7 +32,8 @@ func CreateService(id int, sName string, path string, cmd string) {
 
 	prg.service = s
 
-	if cmd == "install" {
+	switch cmd {
+	case "install":
 		if err := s.Install(); err != nil {
 			Logger.Error(fmt.Sprintf("service is already installed: %s", err.Error()))
 		}
@@ -40,11 +41,29 @@ func CreateService(id int, sName string, path string, cmd string) {
 			Logger.Error(fmt.Sprintf("error while starting the service: %s", err.Error()))
 		}
 		return
-	}
-
-	if err := s.Run(); err != nil {
-		Logger.Error(fmt.Sprintf("error while running the service: %s", err.Error()))
-		return
+	case "status":
+		st, err := s.Status()
+		if err != nil {
+			Logger.Error(fmt.Sprintf("error while fetching service status: %s", err.Error()))
+		}
+		fmt.Println(st)
+	case "stop":
+		if err := s.Stop(); err != nil {
+			Logger.Error(fmt.Sprintf("error while stopping the service: %s", err.Error()))
+		}
+	case "start":
+		if err := s.Start(); err != nil {
+			Logger.Error(fmt.Sprintf("error while restarting the service: %s", err.Error()))
+		}
+	case "uninstall":
+		if err := s.Uninstall(); err != nil {
+			Logger.Error(fmt.Sprintf("error while uninstalling the service: %s", err.Error()))
+		}
+	default:
+		if err := s.Run(); err != nil {
+			Logger.Error(fmt.Sprintf("error while running the service: %s", err.Error()))
+			return
+		}
 	}
 
 }
