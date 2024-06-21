@@ -91,12 +91,14 @@ func (p *programm) run() {
 	Client, err = Config.CreateClient(ctx)
 
 	if err != nil {
-		Logger.Error(fmt.Sprintf("error while creating client connection: %s", err.Error()))
+		Logger.Error(fmt.Sprintf("error while creating client connection: %s - service stopped", err.Error()))
+		os.Exit(1)
 		return
 	}
 
 	if err := Client.Connect(ctx); err != nil {
-		Logger.Error(fmt.Sprintf("error while creating client connection: %s", err.Error()))
+		Logger.Error(fmt.Sprintf("error while creating client connection: %s - service stopped", err.Error()))
+		os.Exit(1)
 		return
 	}
 
