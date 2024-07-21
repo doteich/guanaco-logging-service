@@ -155,7 +155,7 @@ func (p *conf) CreateClient(ctx context.Context) (*opcua.Client, error) {
 		return nil, err
 	}
 
-	return c, err
+	return c, nil
 }
 
 func InitSubs(pctx context.Context, ctx context.Context) {
